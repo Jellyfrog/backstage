@@ -73,7 +73,8 @@ export const createGitlabGroupUserAction = (options: {
               description:
                 'The action to perform: add or remove the users. Defaults to "add".',
             })
-            .default('add'),
+            .default('add')
+            .optional(),
         accessLevel: z =>
           z
             .number({
@@ -106,8 +107,14 @@ export const createGitlabGroupUserAction = (options: {
       },
     },
     async handler(ctx) {
-      const { token, repoUrl, groupId, userIds, accessLevel } = ctx.input;
-      const action = ctx.input.action ?? 'add';
+      const {
+        token,
+        repoUrl,
+        groupId,
+        userIds,
+        accessLevel,
+        action = 'add',
+      } = ctx.input;
 
       if (action === 'add' && accessLevel === undefined) {
         throw new Error(
