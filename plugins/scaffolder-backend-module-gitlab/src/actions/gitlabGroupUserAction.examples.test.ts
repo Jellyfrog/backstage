@@ -61,12 +61,7 @@ describe('gitlab:group:user examples', () => {
   const action = createGitlabGroupUserAction({ integrations });
 
   it(`Should ${examples[0].description}`, async () => {
-    mockGitlabClient.GroupMembers.add.mockResolvedValue({
-      id: 1,
-      user_id: 456,
-      group_id: 123,
-      access_level: 30,
-    });
+    mockGitlabClient.GroupMembers.add.mockResolvedValue({});
 
     await action.handler({
       ...mockContext,
@@ -79,94 +74,98 @@ describe('gitlab:group:user examples', () => {
       30,
     );
 
-    expect(mockContext.output).toHaveBeenCalledWith('userId', 456);
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456]);
     expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
     expect(mockContext.output).toHaveBeenCalledWith('accessLevel', 30);
   });
 
   it(`Should ${examples[1].description}`, async () => {
-    mockGitlabClient.GroupMembers.add.mockResolvedValue({
-      id: 1,
-      user_id: 456,
-      group_id: 123,
-      access_level: 40,
-    });
+    mockGitlabClient.GroupMembers.add.mockResolvedValue({});
 
     await action.handler({
       ...mockContext,
       input: yaml.parse(examples[1].example).steps[0].input,
     });
 
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledTimes(3);
     expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
       123,
       456,
-      40,
+      30,
+    );
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
+      123,
+      789,
+      30,
+    );
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
+      123,
+      101,
+      30,
     );
 
-    expect(mockContext.output).toHaveBeenCalledWith('userId', 456);
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456, 789, 101]);
     expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
-    expect(mockContext.output).toHaveBeenCalledWith('accessLevel', 40);
+    expect(mockContext.output).toHaveBeenCalledWith('accessLevel', 30);
   });
 
   it(`Should ${examples[2].description}`, async () => {
-    mockGitlabClient.GroupMembers.remove.mockResolvedValue(undefined);
+    mockGitlabClient.GroupMembers.add.mockResolvedValue({});
 
     await action.handler({
       ...mockContext,
       input: yaml.parse(examples[2].example).steps[0].input,
     });
 
-    expect(mockGitlabClient.GroupMembers.remove).toHaveBeenCalledWith(123, 456);
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledTimes(2);
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
+      123,
+      456,
+      40,
+    );
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
+      123,
+      789,
+      40,
+    );
 
-    expect(mockContext.output).toHaveBeenCalledWith('userId', 456);
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456, 789]);
     expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
+    expect(mockContext.output).toHaveBeenCalledWith('accessLevel', 40);
   });
 
   it(`Should ${examples[3].description}`, async () => {
+    mockGitlabClient.GroupMembers.remove.mockResolvedValue(undefined);
+
     await action.handler({
       ...mockContext,
-      isDryRun: yaml.parse(examples[3].example).steps[0].isDryRun,
       input: yaml.parse(examples[3].example).steps[0].input,
+    });
+
+    expect(mockGitlabClient.GroupMembers.remove).toHaveBeenCalledTimes(2);
+    expect(mockGitlabClient.GroupMembers.remove).toHaveBeenCalledWith(123, 456);
+    expect(mockGitlabClient.GroupMembers.remove).toHaveBeenCalledWith(123, 789);
+
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456, 789]);
+    expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
+  });
+
+  it(`Should ${examples[4].description}`, async () => {
+    await action.handler({
+      ...mockContext,
+      isDryRun: yaml.parse(examples[4].example).steps[0].isDryRun,
+      input: yaml.parse(examples[4].example).steps[0].input,
     });
 
     expect(mockGitlabClient.GroupMembers.add).not.toHaveBeenCalled();
 
-    expect(mockContext.output).toHaveBeenCalledWith('userId', 456);
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456, 789]);
     expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
     expect(mockContext.output).toHaveBeenCalledWith('accessLevel', 30);
   });
 
-  it(`Should ${examples[4].description}`, async () => {
-    mockGitlabClient.GroupMembers.add.mockResolvedValue({
-      id: 1,
-      user_id: 456,
-      group_id: 123,
-      access_level: 10,
-    });
-
-    await action.handler({
-      ...mockContext,
-      input: yaml.parse(examples[4].example).steps[0].input,
-    });
-
-    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
-      123,
-      456,
-      10,
-    );
-
-    expect(mockContext.output).toHaveBeenCalledWith('userId', 456);
-    expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
-    expect(mockContext.output).toHaveBeenCalledWith('accessLevel', 10);
-  });
-
   it(`Should ${examples[5].description}`, async () => {
-    mockGitlabClient.GroupMembers.add.mockResolvedValue({
-      id: 1,
-      user_id: 456,
-      group_id: 123,
-      access_level: 30,
-    });
+    mockGitlabClient.GroupMembers.add.mockResolvedValue({});
 
     await action.handler({
       ...mockContext,
@@ -176,10 +175,35 @@ describe('gitlab:group:user examples', () => {
     expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
       123,
       456,
+      10,
+    );
+
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456]);
+    expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
+    expect(mockContext.output).toHaveBeenCalledWith('accessLevel', 10);
+  });
+
+  it(`Should ${examples[6].description}`, async () => {
+    mockGitlabClient.GroupMembers.add.mockResolvedValue({});
+
+    await action.handler({
+      ...mockContext,
+      input: yaml.parse(examples[6].example).steps[0].input,
+    });
+
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledTimes(2);
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
+      123,
+      456,
+      30,
+    );
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
+      123,
+      789,
       30,
     );
 
-    expect(mockContext.output).toHaveBeenCalledWith('userId', 456);
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456, 789]);
     expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
     expect(mockContext.output).toHaveBeenCalledWith('accessLevel', 30);
   });

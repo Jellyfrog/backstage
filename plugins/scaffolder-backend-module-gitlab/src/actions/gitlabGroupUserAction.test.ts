@@ -64,7 +64,7 @@ describe('gitlab:group:user', () => {
 
   const mockContext = createMockActionContext();
 
-  it('should add a user to a group with the specified access level', async () => {
+  it('should add a single user to a group with the specified access level', async () => {
     mockGitlabClient.GroupMembers.add.mockResolvedValue({
       id: 1,
       user_id: 456,
@@ -77,8 +77,7 @@ describe('gitlab:group:user', () => {
       input: {
         repoUrl: 'gitlab.com?repo=repo&owner=owner',
         groupId: 123,
-        userId: 456,
-        action: 'add',
+        userIds: [456],
         accessLevel: 30,
       },
     });
@@ -89,12 +88,68 @@ describe('gitlab:group:user', () => {
       30,
     );
 
-    expect(mockContext.output).toHaveBeenCalledWith('userId', 456);
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456]);
     expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
     expect(mockContext.output).toHaveBeenCalledWith('accessLevel', 30);
   });
 
-  it('should remove a user from a group', async () => {
+  it('should add multiple users to a group with the specified access level', async () => {
+    mockGitlabClient.GroupMembers.add.mockResolvedValue({});
+
+    await action.handler({
+      ...mockContext,
+      input: {
+        repoUrl: 'gitlab.com?repo=repo&owner=owner',
+        groupId: 123,
+        userIds: [456, 789, 101],
+        accessLevel: 30,
+      },
+    });
+
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledTimes(3);
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
+      123,
+      456,
+      30,
+    );
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
+      123,
+      789,
+      30,
+    );
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
+      123,
+      101,
+      30,
+    );
+
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456, 789, 101]);
+    expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
+    expect(mockContext.output).toHaveBeenCalledWith('accessLevel', 30);
+  });
+
+  it('should default to add action when action is not specified', async () => {
+    mockGitlabClient.GroupMembers.add.mockResolvedValue({});
+
+    await action.handler({
+      ...mockContext,
+      input: {
+        repoUrl: 'gitlab.com?repo=repo&owner=owner',
+        groupId: 123,
+        userIds: [456],
+        accessLevel: 30,
+      },
+    });
+
+    expect(mockGitlabClient.GroupMembers.add).toHaveBeenCalledWith(
+      123,
+      456,
+      30,
+    );
+    expect(mockGitlabClient.GroupMembers.remove).not.toHaveBeenCalled();
+  });
+
+  it('should remove a single user from a group', async () => {
     mockGitlabClient.GroupMembers.remove.mockResolvedValue(undefined);
 
     await action.handler({
@@ -102,14 +157,14 @@ describe('gitlab:group:user', () => {
       input: {
         repoUrl: 'gitlab.com?repo=repo&owner=owner',
         groupId: 123,
-        userId: 456,
+        userIds: [456],
         action: 'remove',
       },
     });
 
     expect(mockGitlabClient.GroupMembers.remove).toHaveBeenCalledWith(123, 456);
 
-    expect(mockContext.output).toHaveBeenCalledWith('userId', 456);
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456]);
     expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
     expect(mockContext.output).not.toHaveBeenCalledWith(
       'accessLevel',
@@ -117,15 +172,35 @@ describe('gitlab:group:user', () => {
     );
   });
 
-  it('should throw an error when adding a user without accessLevel', async () => {
+  it('should remove multiple users from a group', async () => {
+    mockGitlabClient.GroupMembers.remove.mockResolvedValue(undefined);
+
+    await action.handler({
+      ...mockContext,
+      input: {
+        repoUrl: 'gitlab.com?repo=repo&owner=owner',
+        groupId: 123,
+        userIds: [456, 789],
+        action: 'remove',
+      },
+    });
+
+    expect(mockGitlabClient.GroupMembers.remove).toHaveBeenCalledTimes(2);
+    expect(mockGitlabClient.GroupMembers.remove).toHaveBeenCalledWith(123, 456);
+    expect(mockGitlabClient.GroupMembers.remove).toHaveBeenCalledWith(123, 789);
+
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456, 789]);
+    expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
+  });
+
+  it('should throw an error when adding users without accessLevel', async () => {
     await expect(
       action.handler({
         ...mockContext,
         input: {
           repoUrl: 'gitlab.com?repo=repo&owner=owner',
           groupId: 123,
-          userId: 456,
-          action: 'add',
+          userIds: [456],
         },
       }),
     ).rejects.toThrow('accessLevel is required when action is "add"');
@@ -140,15 +215,14 @@ describe('gitlab:group:user', () => {
       input: {
         repoUrl: 'gitlab.com?repo=repo&owner=owner',
         groupId: 123,
-        userId: 456,
-        action: 'add',
+        userIds: [456, 789],
         accessLevel: 30,
       },
     });
 
     expect(mockGitlabClient.GroupMembers.add).not.toHaveBeenCalled();
 
-    expect(mockContext.output).toHaveBeenCalledWith('userId', 456);
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456, 789]);
     expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
     expect(mockContext.output).toHaveBeenCalledWith('accessLevel', 30);
   });
@@ -160,14 +234,14 @@ describe('gitlab:group:user', () => {
       input: {
         repoUrl: 'gitlab.com?repo=repo&owner=owner',
         groupId: 123,
-        userId: 456,
+        userIds: [456],
         action: 'remove',
       },
     });
 
     expect(mockGitlabClient.GroupMembers.remove).not.toHaveBeenCalled();
 
-    expect(mockContext.output).toHaveBeenCalledWith('userId', 456);
+    expect(mockContext.output).toHaveBeenCalledWith('userIds', [456]);
     expect(mockContext.output).toHaveBeenCalledWith('groupId', 123);
   });
 
@@ -179,8 +253,7 @@ describe('gitlab:group:user', () => {
       input: {
         repoUrl: 'gitlab.com?repo=repo&owner=owner',
         groupId: 123,
-        userId: 456,
-        action: 'add',
+        userIds: [456],
         accessLevel: 30,
       },
     });
@@ -200,8 +273,7 @@ describe('gitlab:group:user', () => {
       input: {
         repoUrl: 'gitlab.com?repo=repo&owner=owner',
         groupId: 123,
-        userId: 456,
-        action: 'add',
+        userIds: [456],
         accessLevel: 30,
         token: 'mysecrettoken',
       },
@@ -214,7 +286,7 @@ describe('gitlab:group:user', () => {
     );
   });
 
-  it('should add a user as a Guest (accessLevel 10)', async () => {
+  it('should add users as Guest (accessLevel 10)', async () => {
     mockGitlabClient.GroupMembers.add.mockResolvedValue({});
 
     await action.handler({
@@ -222,8 +294,7 @@ describe('gitlab:group:user', () => {
       input: {
         repoUrl: 'gitlab.com?repo=repo&owner=owner',
         groupId: 123,
-        userId: 456,
-        action: 'add',
+        userIds: [456],
         accessLevel: 10,
       },
     });
@@ -235,7 +306,7 @@ describe('gitlab:group:user', () => {
     );
   });
 
-  it('should add a user as a Maintainer (accessLevel 40)', async () => {
+  it('should add users as Maintainer (accessLevel 40)', async () => {
     mockGitlabClient.GroupMembers.add.mockResolvedValue({});
 
     await action.handler({
@@ -243,8 +314,7 @@ describe('gitlab:group:user', () => {
       input: {
         repoUrl: 'gitlab.com?repo=repo&owner=owner',
         groupId: 123,
-        userId: 456,
-        action: 'add',
+        userIds: [456],
         accessLevel: 40,
       },
     });
@@ -256,7 +326,7 @@ describe('gitlab:group:user', () => {
     );
   });
 
-  it('should add a user as an Owner (accessLevel 50)', async () => {
+  it('should add users as Owner (accessLevel 50)', async () => {
     mockGitlabClient.GroupMembers.add.mockResolvedValue({});
 
     await action.handler({
@@ -264,8 +334,7 @@ describe('gitlab:group:user', () => {
       input: {
         repoUrl: 'gitlab.com?repo=repo&owner=owner',
         groupId: 123,
-        userId: 456,
-        action: 'add',
+        userIds: [456],
         accessLevel: 50,
       },
     });

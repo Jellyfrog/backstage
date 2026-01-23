@@ -18,7 +18,7 @@ import yaml from 'yaml';
 
 export const examples: TemplateExample[] = [
   {
-    description: 'Add a user to a group as a Developer',
+    description: 'Add a single user to a group as a Developer (default action)',
     example: yaml.stringify({
       steps: [
         {
@@ -28,8 +28,7 @@ export const examples: TemplateExample[] = [
           input: {
             repoUrl: 'gitlab.com',
             groupId: 123,
-            userId: 456,
-            action: 'add',
+            userIds: [456],
             accessLevel: 30,
           },
         },
@@ -37,17 +36,35 @@ export const examples: TemplateExample[] = [
     }),
   },
   {
-    description: 'Add a user to a group as a Maintainer',
+    description: 'Add multiple users to a group as Developers',
     example: yaml.stringify({
       steps: [
         {
           id: 'gitlabGroupUser',
-          name: 'Add User to Group',
+          name: 'Add Users to Group',
           action: 'gitlab:group:user',
           input: {
             repoUrl: 'gitlab.com',
             groupId: 123,
-            userId: 456,
+            userIds: [456, 789, 101],
+            accessLevel: 30,
+          },
+        },
+      ],
+    }),
+  },
+  {
+    description: 'Add multiple users to a group as Maintainers',
+    example: yaml.stringify({
+      steps: [
+        {
+          id: 'gitlabGroupUser',
+          name: 'Add Users to Group',
+          action: 'gitlab:group:user',
+          input: {
+            repoUrl: 'gitlab.com',
+            groupId: 123,
+            userIds: [456, 789],
             action: 'add',
             accessLevel: 40,
           },
@@ -56,17 +73,17 @@ export const examples: TemplateExample[] = [
     }),
   },
   {
-    description: 'Remove a user from a group',
+    description: 'Remove multiple users from a group',
     example: yaml.stringify({
       steps: [
         {
           id: 'gitlabGroupUser',
-          name: 'Remove User from Group',
+          name: 'Remove Users from Group',
           action: 'gitlab:group:user',
           input: {
             repoUrl: 'gitlab.com',
             groupId: 123,
-            userId: 456,
+            userIds: [456, 789],
             action: 'remove',
           },
         },
@@ -74,19 +91,18 @@ export const examples: TemplateExample[] = [
     }),
   },
   {
-    description: 'Add a user to a group in dry run mode',
+    description: 'Add users to a group in dry run mode',
     example: yaml.stringify({
       steps: [
         {
           id: 'gitlabGroupUser',
-          name: 'Add User to Group',
+          name: 'Add Users to Group',
           action: 'gitlab:group:user',
           isDryRun: true,
           input: {
             repoUrl: 'gitlab.com',
             groupId: 123,
-            userId: 456,
-            action: 'add',
+            userIds: [456, 789],
             accessLevel: 30,
           },
         },
@@ -94,18 +110,17 @@ export const examples: TemplateExample[] = [
     }),
   },
   {
-    description: 'Add a user to a group as a Guest',
+    description: 'Add users to a group as Guests',
     example: yaml.stringify({
       steps: [
         {
           id: 'gitlabGroupUser',
-          name: 'Add User to Group',
+          name: 'Add Users to Group',
           action: 'gitlab:group:user',
           input: {
             repoUrl: 'gitlab.com',
             groupId: 123,
-            userId: 456,
-            action: 'add',
+            userIds: [456],
             accessLevel: 10,
           },
         },
@@ -113,18 +128,17 @@ export const examples: TemplateExample[] = [
     }),
   },
   {
-    description: 'Add a user to a group with a custom token',
+    description: 'Add users to a group with a custom token',
     example: yaml.stringify({
       steps: [
         {
           id: 'gitlabGroupUser',
-          name: 'Add User to Group',
+          name: 'Add Users to Group',
           action: 'gitlab:group:user',
           input: {
             repoUrl: 'gitlab.com',
             groupId: 123,
-            userId: 456,
-            action: 'add',
+            userIds: [456, 789],
             accessLevel: 30,
             token: '${{ secrets.GITLAB_TOKEN }}',
           },
