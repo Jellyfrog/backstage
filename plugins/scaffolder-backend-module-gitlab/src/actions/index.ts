@@ -15,6 +15,7 @@
  */
 export * from './gitlab';
 export * from './gitlabGroupEnsureExists';
+export * from './gitlabGroupUserAction';
 export * from './gitlabIssueCreate';
 export * from './gitlabIssueEdit';
 export * from './gitlabMergeRequest';
