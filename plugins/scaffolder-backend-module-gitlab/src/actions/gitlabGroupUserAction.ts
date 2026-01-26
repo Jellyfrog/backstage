@@ -60,8 +60,9 @@ export const createGitlabGroupUserAction = (options: {
             })
             .optional(),
         groupId: z =>
-          z.number({
-            description: 'The ID of the group to add/remove users from',
+          z.union([z.number(), z.string()], {
+            description:
+              'The ID or URL-encoded path of the group to add/remove users from',
           }),
         userIds: z =>
           z.array(z.number(), {
@@ -92,9 +93,9 @@ export const createGitlabGroupUserAction = (options: {
             .optional(),
         groupId: z =>
           z
-            .number({
+            .union([z.number(), z.string()], {
               description:
-                'The ID of the group the users were added to or removed from',
+                'The ID or URL-encoded path of the group the users were added to or removed from',
             })
             .optional(),
         accessLevel: z =>
@@ -135,41 +136,32 @@ export const createGitlabGroupUserAction = (options: {
 
       const api = getClient({ host, integrations, token });
 
-      if (action === 'add') {
-        ctx.logger.info(
-          `Adding ${userIds.length} user(s) to group ${groupId} with access level ${accessLevel}`,
-        );
-
-        for (const userId of userIds) {
-          await ctx.checkpoint({
-            key: `gitlab.group.user.add.${groupId}.${userId}`,
-            fn: async () => {
-              await api.GroupMembers.add(groupId, userId, accessLevel!);
-            },
-          });
-          ctx.logger.info(`Added user ${userId} to group ${groupId}`);
-        }
-
-        ctx.output('userIds', userIds);
-        ctx.output('groupId', groupId);
-        ctx.output('accessLevel', accessLevel);
-      } else {
-        ctx.logger.info(
-          `Removing ${userIds.length} user(s) from group ${groupId}`,
-        );
-
-        for (const userId of userIds) {
-          await ctx.checkpoint({
-            key: `gitlab.group.user.remove.${groupId}.${userId}`,
-            fn: async () => {
+      for (const userId of userIds) {
+        await ctx.checkpoint({
+          key: `gitlab.group.user.${action}.${groupId}.${userId}`,
+          fn: async () => {
+            if (action === 'add') {
+              try {
+                await api.GroupMembers.add(groupId, userId, accessLevel!);
+              } catch (error: any) {
+                // If member already exists, try to edit instead
+                if (error.cause?.response?.status === 409) {
+                  await api.GroupMembers.edit(groupId, userId, accessLevel!);
+                  return;
+                }
+                throw error;
+              }
+            } else {
               await api.GroupMembers.remove(groupId, userId);
-            },
-          });
-          ctx.logger.info(`Removed user ${userId} from group ${groupId}`);
-        }
+            }
+          },
+        });
+      }
 
-        ctx.output('userIds', userIds);
-        ctx.output('groupId', groupId);
+      ctx.output('userIds', userIds);
+      ctx.output('groupId', groupId);
+      if (action === 'add') {
+        ctx.output('accessLevel', accessLevel);
       }
     },
   });
